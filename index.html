@@ -8,7 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Nunito', sans-serif; background: linear-gradient(160deg,#FFF8EE,#EEF6FF); min-height: 100vh; }
@@ -19,8 +18,8 @@
 
 <div id="root"></div>
 
-<script type="text/babel">
-const { useState, useEffect } = React;
+<script>
+const { useState, useEffect, createElement: h } = React;
 
 // ============================================================
 // CONFIG — your live Google Apps Script Web App URL
@@ -83,20 +82,20 @@ const CONSEQUENCES = [
 async function apiSaveTask(kid, date, taskId, taskLabel, done) {
   const params = new URLSearchParams({ action:"save_task", kid, date, task_id:taskId, task_label:taskLabel, done:String(done) });
   try {
-    await fetch(`${SCRIPT_URL}?${params.toString()}`, { method:"GET", redirect:"follow" });
+    await fetch(SCRIPT_URL + "?" + params.toString(), { method:"GET", redirect:"follow" });
   } catch (err) { console.error("save_task failed", err); }
 }
 
 async function apiSaveConsequence(kid, date, consequence) {
   const params = new URLSearchParams({ action:"save_consequence", kid, date, consequence });
   try {
-    await fetch(`${SCRIPT_URL}?${params.toString()}`, { method:"GET", redirect:"follow" });
+    await fetch(SCRIPT_URL + "?" + params.toString(), { method:"GET", redirect:"follow" });
   } catch (err) { console.error("save_consequence failed", err); }
 }
 
 async function apiGetAll() {
   try {
-    const res = await fetch(`${SCRIPT_URL}?action=get_all`, { method:"GET", redirect:"follow" });
+    const res = await fetch(SCRIPT_URL + "?action=get_all", { method:"GET", redirect:"follow" });
     const json = await res.json();
     return json.rows || [];
   } catch (err) {
@@ -105,76 +104,38 @@ async function apiGetAll() {
   }
 }
 
-function App() {
-  const [tab, setTab] = useState("today");
-  const today = todayStr();
-  const dow = getDOW(today);
-  const dateDisplay = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" });
-
-  return (
-    <div style={{ minHeight:"100vh" }}>
-      <div style={{ background:"linear-gradient(135deg,#3AB4F2,#1a85c4)", padding:"28px 20px 50px", textAlign:"center", position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", bottom:-2, left:0, right:0, height:40, background:"linear-gradient(160deg,#FFF8EE,#EEF6FF)", borderRadius:"50% 50% 0 0 / 60px 60px 0 0" }} />
-        <div style={{ fontSize:44, marginBottom:4 }}>☀️</div>
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:"#fff" }}>Summer Tracker 2026</div>
-        <div style={{ color:"rgba(255,255,255,0.85)", fontSize:13, marginTop:4 }}>{dateDisplay}</div>
-        <div style={{ color:"rgba(255,255,255,0.7)", fontSize:11, marginTop:6 }}>🔗 Synced via Google Sheets — works on all phones</div>
-        <div style={{ display:"flex", justifyContent:"center", gap:10, marginTop:16 }}>
-          {[["today","📋 Today"],["parent","📊 Parent View"]].map(([id,lbl]) => (
-            <button key={id} onClick={() => setTab(id)} style={{
-              padding:"8px 20px", borderRadius:999, border:"2px solid rgba(255,255,255,0.5)",
-              background: tab===id ? "#fff" : "transparent",
-              color: tab===id ? "#1a85c4" : "#fff",
-              fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Nunito',sans-serif", transition:"all .2s",
-            }}>{lbl}</button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ maxWidth:900, margin:"0 auto", padding:"0 14px 60px" }}>
-        {tab==="today" ? <TodayView today={today} dow={dow} /> : <ParentView />}
-      </div>
-    </div>
+// ── HOUSE RULES BAR ──────────────────────────────────────────
+function HouseRules() {
+  const rules = [
+    "📵 Max 1.5 hrs screens/day (earned)",
+    "🍽️ No phones at meals",
+    "🌙 Svikruth off 9 PM · Sweeya off 8 PM",
+    "⚠️ Miss tasks → No screens 1 day OR No outdoor play 2 days",
+    "⭐ Full week done → bonus fun outing",
+  ];
+  return h("div", { style:{ background:"#fff", borderRadius:20, padding:"18px 20px", marginTop:18, boxShadow:"0 3px 12px rgba(0,0,0,0.07)" } },
+    h("div", { style:{ fontFamily:"'Fredoka One',cursive", fontSize:17, marginBottom:10 } }, "📋 House Rules"),
+    h("div", { style:{ display:"flex", flexWrap:"wrap", gap:8 } },
+      rules.map(r => h("div", { key:r, style:{ background:"#f5f5f5", borderRadius:10, padding:"7px 12px", fontSize:12, fontWeight:700 } }, r))
+    )
   );
 }
 
-function TodayView({ today, dow }) {
-  return (
-    <div>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))", gap:18, marginTop:20 }}>
-        <KidCard kidKey="svikruth" today={today} dow={dow} />
-        <KidCard kidKey="sweeya"   today={today} dow={dow} />
-      </div>
-      <div style={{ background:"#fff", borderRadius:20, padding:"18px 20px", marginTop:18, boxShadow:"0 3px 12px rgba(0,0,0,0.07)" }}>
-        <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:17, marginBottom:10 }}>📋 House Rules</div>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-          {[
-            "📵 Max 1.5 hrs screens/day (earned)",
-            "🍽️ No phones at meals",
-            "🌙 Svikruth off 9 PM · Sweeya off 8 PM",
-            "⚠️ Miss tasks → No screens 1 day OR No outdoor play 2 days",
-            "⭐ Full week done → bonus fun outing",
-          ].map(r => <div key={r} style={{ background:"#f5f5f5", borderRadius:10, padding:"7px 12px", fontSize:12, fontWeight:700 }}>{r}</div>)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// ── KID CARD ─────────────────────────────────────────────────
 function KidCard({ kidKey, today, dow }) {
   const kid = KIDS[kidKey];
 
-  const [checks,      setChecks]      = useState({});
+  const [checks, setChecks] = useState({});
   const [consequence, setConsequence] = useState(null);
-  const [loading,     setLoading]     = useState(true);
-  const [celebrate,   setCelebrate]   = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [celebrate, setCelebrate] = useState(false);
   const [missedCount, setMissedCount] = useState(0);
-  const [syncing,     setSyncing]     = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const todayTasks = kid.tasks.filter(t => !t.days || t.days.includes(dow));
-  const total  = todayTasks.length;
-  const done   = todayTasks.filter(t => checks[t.id]).length;
-  const pct    = total ? Math.round((done/total)*100) : 100;
+  const total = todayTasks.length;
+  const done = todayTasks.filter(t => checks[t.id]).length;
+  const pct = total ? Math.round((done/total)*100) : 100;
   const allDone = done === total && total > 0;
 
   useEffect(() => {
@@ -205,7 +166,7 @@ function KidCard({ kidKey, today, dow }) {
   const toggle = async (task) => {
     const newVal = !checks[task.id];
     setChecks(prev => {
-      const next = { ...prev, [task.id]: newVal };
+      const next = Object.assign({}, prev, { [task.id]: newVal });
       if (todayTasks.filter(t => next[t.id]).length === total) {
         setCelebrate(true); setTimeout(() => setCelebrate(false), 2800);
       }
@@ -223,104 +184,112 @@ function KidCard({ kidKey, today, dow }) {
     setSyncing(false);
   };
 
-  if (loading) return <div style={{ background:"#fff", borderRadius:24, padding:30, textAlign:"center", color:"#aaa" }}>Loading from Google Sheet…</div>;
+  if (loading) {
+    return h("div", { style:{ background:"#fff", borderRadius:24, padding:30, textAlign:"center", color:"#aaa" } }, "Loading from Google Sheet…");
+  }
 
-  return (
-    <div style={{ background:"#fff", borderRadius:24, overflow:"hidden", boxShadow:"0 6px 28px rgba(0,0,0,0.09)", position:"relative" }}>
+  return h("div", { style:{ background:"#fff", borderRadius:24, overflow:"hidden", boxShadow:"0 6px 28px rgba(0,0,0,0.09)", position:"relative" } },
 
-      {celebrate && (
-        <div style={{ position:"absolute", inset:0, zIndex:10, background:"rgba(255,255,255,0.93)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", borderRadius:24 }}>
-          <div style={{ fontSize:60 }}>🎉</div>
-          <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:kid.color, marginTop:8 }}>Amazing, {kid.name}!</div>
-          <div style={{ fontSize:14, color:"#636E72", marginTop:6 }}>Screen time earned today ✅</div>
-        </div>
-      )}
+    celebrate && h("div", { style:{ position:"absolute", inset:0, zIndex:10, background:"rgba(255,255,255,0.93)", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", borderRadius:24 } },
+      h("div", { style:{ fontSize:60 } }, "🎉"),
+      h("div", { style:{ fontFamily:"'Fredoka One',cursive", fontSize:26, color:kid.color, marginTop:8 } }, "Amazing, " + kid.name + "!"),
+      h("div", { style:{ fontSize:14, color:"#636E72", marginTop:6 } }, "Screen time earned today ✅")
+    ),
 
-      <div style={{ background:`linear-gradient(135deg,${kid.color},${kid.color}bb)`, padding:"18px 20px 14px", color:"#fff" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
-          <div style={{ width:48, height:48, borderRadius:"50%", background:"rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>{kid.emoji}</div>
-          <div>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22 }}>{kid.name}</div>
-            <div style={{ fontSize:12, opacity:.85 }}>{kid.age} yrs · {kid.grade}</div>
-          </div>
-          <div style={{ marginLeft:"auto", textAlign:"right" }}>
-            <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:30 }}>{done}/{total}</div>
-            <div style={{ fontSize:11, opacity:.85 }}>{syncing ? "syncing…" : "tasks done"}</div>
-          </div>
-        </div>
-        <div style={{ background:"rgba(255,255,255,0.25)", borderRadius:999, height:9, overflow:"hidden" }}>
-          <div style={{ width:`${pct}%`, height:"100%", background:"#fff", borderRadius:999, transition:"width .4s ease" }} />
-        </div>
-        <div style={{ fontSize:11, marginTop:4, opacity:.8 }}>{pct}% complete</div>
-      </div>
+    h("div", { style:{ background:"linear-gradient(135deg," + kid.color + "," + kid.color + "bb)", padding:"18px 20px 14px", color:"#fff" } },
+      h("div", { style:{ display:"flex", alignItems:"center", gap:12, marginBottom:10 } },
+        h("div", { style:{ width:48, height:48, borderRadius:"50%", background:"rgba(255,255,255,0.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 } }, kid.emoji),
+        h("div", null,
+          h("div", { style:{ fontFamily:"'Fredoka One',cursive", fontSize:22 } }, kid.name),
+          h("div", { style:{ fontSize:12, opacity:.85 } }, kid.age + " yrs · " + kid.grade)
+        ),
+        h("div", { style:{ marginLeft:"auto", textAlign:"right" } },
+          h("div", { style:{ fontFamily:"'Fredoka One',cursive", fontSize:30 } }, done + "/" + total),
+          h("div", { style:{ fontSize:11, opacity:.85 } }, syncing ? "syncing…" : "tasks done")
+        )
+      ),
+      h("div", { style:{ background:"rgba(255,255,255,0.25)", borderRadius:999, height:9, overflow:"hidden" } },
+        h("div", { style:{ width:pct+"%", height:"100%", background:"#fff", borderRadius:999, transition:"width .4s ease" } })
+      ),
+      h("div", { style:{ fontSize:11, marginTop:4, opacity:.8 } }, pct + "% complete")
+    ),
 
-      {missedCount > 0 && (
-        <div style={{ background:"#FFF9E6", borderBottom:"1px solid #FFE083", padding:"12px 18px" }}>
-          <div style={{ fontWeight:800, color:"#856404", fontSize:13, marginBottom:8 }}>
-            ⚠️ Yesterday: {missedCount} task{missedCount>1?"s":""} missed — choose your consequence:
-          </div>
-          <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-            {CONSEQUENCES.map(({ val, label }) => (
-              <button key={val} onClick={() => pickCon(val)} style={{
-                padding:"8px 16px", borderRadius:10, cursor:"pointer", fontWeight:800, fontSize:14,
-                border:`2px solid ${consequence===val ? "#856404" : "#FFD166"}`,
-                background: consequence===val ? "#856404" : "#fff",
-                color: consequence===val ? "#fff" : "#856404",
-                fontFamily:"'Nunito',sans-serif", transition:"all .2s",
-              }}>{label}</button>
-            ))}
-          </div>
-          {consequence && (
-            <div style={{ marginTop:8, fontSize:12, color:"#856404", fontWeight:700 }}>
-              ✅ {kid.name} chose: {consequence==="screen" ? "No screens for 1 day" : "No outdoor play for 2 days"} — respect! 👊
-            </div>
-          )}
-        </div>
-      )}
+    missedCount > 0 && h("div", { style:{ background:"#FFF9E6", borderBottom:"1px solid #FFE083", padding:"12px 18px" } },
+      h("div", { style:{ fontWeight:800, color:"#856404", fontSize:13, marginBottom:8 } },
+        "⚠️ Yesterday: " + missedCount + " task" + (missedCount>1?"s":"") + " missed — choose your consequence:"
+      ),
+      h("div", { style:{ display:"flex", gap:8, flexWrap:"wrap" } },
+        CONSEQUENCES.map(({ val, label }) => h("button", {
+          key:val, onClick:() => pickCon(val),
+          style:{
+            padding:"8px 16px", borderRadius:10, cursor:"pointer", fontWeight:800, fontSize:14,
+            border:"2px solid " + (consequence===val ? "#856404" : "#FFD166"),
+            background: consequence===val ? "#856404" : "#fff",
+            color: consequence===val ? "#fff" : "#856404",
+            fontFamily:"'Nunito',sans-serif", transition:"all .2s",
+          }
+        }, label))
+      ),
+      consequence && h("div", { style:{ marginTop:8, fontSize:12, color:"#856404", fontWeight:700 } },
+        "✅ " + kid.name + " chose: " + (consequence==="screen" ? "No screens for 1 day" : "No outdoor play for 2 days") + " — respect! 👊"
+      )
+    ),
 
-      <div style={{ padding:"14px 16px" }}>
-        {todayTasks.map(task => {
-          const cat     = CAT[task.category];
-          const checked = !!checks[task.id];
-          return (
-            <div key={task.id} onClick={() => toggle(task)} style={{
-              display:"flex", alignItems:"center", gap:10,
-              padding:"10px 12px", marginBottom:7, borderRadius:13,
-              background: checked ? kid.light : "#f8f8f8",
-              border:`2px solid ${checked ? kid.color+"44" : "#eee"}`,
-              cursor:"pointer", transition:"all .2s", userSelect:"none",
-            }}>
-              <div style={{ width:26, height:26, borderRadius:"50%", border:`2.5px solid ${checked?kid.color:"#ccc"}`, background:checked?kid.color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" }}>
-                {checked && <span style={{ color:"#fff", fontSize:13, fontWeight:900 }}>✓</span>}
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:700, color:checked?"#999":"#2D3436", textDecoration:checked?"line-through":"none" }}>{task.label}</div>
-                {task.link && !checked && (
-                  <a href={task.link} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}
-                    style={{ fontSize:11, color:kid.color, fontWeight:700, textDecoration:"none" }}>🔗 Open resource ↗</a>
-                )}
-              </div>
-              <span style={{ background:cat.bg, color:cat.text, borderRadius:999, padding:"2px 9px", fontSize:10, fontWeight:700, flexShrink:0 }}>{cat.label}</span>
-            </div>
-          );
-        })}
+    h("div", { style:{ padding:"14px 16px" } },
+      todayTasks.map(task => {
+        const cat = CAT[task.category];
+        const checked = !!checks[task.id];
+        return h("div", {
+          key:task.id, onClick:() => toggle(task),
+          style:{
+            display:"flex", alignItems:"center", gap:10,
+            padding:"10px 12px", marginBottom:7, borderRadius:13,
+            background: checked ? kid.light : "#f8f8f8",
+            border:"2px solid " + (checked ? kid.color+"44" : "#eee"),
+            cursor:"pointer", transition:"all .2s", userSelect:"none",
+          }
+        },
+          h("div", { style:{ width:26, height:26, borderRadius:"50%", border:"2.5px solid " + (checked?kid.color:"#ccc"), background:checked?kid.color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all .2s" } },
+            checked && h("span", { style:{ color:"#fff", fontSize:13, fontWeight:900 } }, "✓")
+          ),
+          h("div", { style:{ flex:1 } },
+            h("div", { style:{ fontSize:13, fontWeight:700, color:checked?"#999":"#2D3436", textDecoration:checked?"line-through":"none" } }, task.label),
+            task.link && !checked && h("a", {
+              href:task.link, target:"_blank", rel:"noreferrer", onClick:(e) => e.stopPropagation(),
+              style:{ fontSize:11, color:kid.color, fontWeight:700, textDecoration:"none" }
+            }, "🔗 Open resource ↗")
+          ),
+          h("span", { style:{ background:cat.bg, color:cat.text, borderRadius:999, padding:"2px 9px", fontSize:10, fontWeight:700, flexShrink:0 } }, cat.label)
+        );
+      }),
 
-        <div style={{
+      h("div", {
+        style:{
           marginTop:10, padding:"11px 14px", borderRadius:13, textAlign:"center", fontSize:13, fontWeight:700,
           background: allDone?"#e8fff4":pct>=70?"#fffbe8":"#fff0f0",
           color: allDone?"#007a50":pct>=70?"#856404":"#cc0033",
-          border:`2px solid ${allDone?"#00C9A7":pct>=70?"#FFB800":"#FF6B6B"}22`,
-        }}>
-          {allDone ? "🎉 All done! Screen time earned!" : pct>=70 ? `⚡ Almost! ${total-done} more to go.` : `💪 ${done} of ${total} done — keep going!`}
-        </div>
-      </div>
-    </div>
+          border:"2px solid " + (allDone?"#00C9A7":pct>=70?"#FFB800":"#FF6B6B") + "22",
+        }
+      }, allDone ? "🎉 All done! Screen time earned!" : pct>=70 ? "⚡ Almost! " + (total-done) + " more to go." : "💪 " + done + " of " + total + " done — keep going!")
+    )
   );
 }
 
+// ── TODAY VIEW ───────────────────────────────────────────────
+function TodayView({ today, dow }) {
+  return h("div", null,
+    h("div", { style:{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))", gap:18, marginTop:20 } },
+      h(KidCard, { kidKey:"svikruth", today:today, dow:dow }),
+      h(KidCard, { kidKey:"sweeya", today:today, dow:dow })
+    ),
+    h(HouseRules)
+  );
+}
+
+// ── PARENT VIEW ──────────────────────────────────────────────
 function ParentView() {
-  const [data,        setData]        = useState({ svikruth:{}, sweeya:{} });
-  const [loading,     setLoading]     = useState(true);
+  const [data, setData] = useState({ svikruth:{}, sweeya:{} });
+  const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
   const days = getLast60();
 
@@ -329,113 +298,144 @@ function ParentView() {
       const rows = await apiGetAll();
       const result = { svikruth:{}, sweeya:{} };
 
-      for (const kidKey of ["svikruth","sweeya"]) {
+      ["svikruth","sweeya"].forEach(kidKey => {
         const kid = KIDS[kidKey];
-        for (const d of days) {
-          const dow    = getDOW(d);
+        days.forEach(d => {
+          const dow = getDOW(d);
           const dTasks = kid.tasks.filter(t => !t.days || t.days.includes(dow));
           const dayRows = rows.filter(r => r.kid === kidKey && r.date === d);
           const checks = {};
           dayRows.forEach(r => { if (r.task_id && r.task_id !== "_consequence_marker") checks[r.task_id] = String(r.done) === "true"; });
           const done = dTasks.filter(t => checks[t.id]).length;
           result[kidKey][d] = { done, total:dTasks.length, checks };
-        }
-      }
+        });
+      });
       setData(result); setLoading(false);
     })();
   }, []);
 
-  if (loading) return <div style={{ textAlign:"center", padding:60, color:"#aaa", fontSize:16 }}>Loading history from Google Sheet…</div>;
+  if (loading) {
+    return h("div", { style:{ textAlign:"center", padding:60, color:"#aaa", fontSize:16 } }, "Loading history from Google Sheet…");
+  }
 
-  return (
-    <div style={{ marginTop:20 }}>
-      {["svikruth","sweeya"].map(kidKey => {
-        const kid     = KIDS[kidKey];
-        const kidData = data[kidKey];
-        const tracked    = days.filter(d => kidData[d].total > 0);
-        const fullDays   = tracked.filter(d => kidData[d].done === kidData[d].total).length;
-        const missedDays = tracked.filter(d => kidData[d].done < kidData[d].total).length;
-        let streak = 0;
-        for (let i = days.length-1; i >= 0; i--) {
-          const d = days[i];
-          if (kidData[d].total===0) continue;
-          if (kidData[d].done===kidData[d].total) streak++; else break;
-        }
+  return h("div", { style:{ marginTop:20 } },
+    ["svikruth","sweeya"].map(kidKey => {
+      const kid = KIDS[kidKey];
+      const kidData = data[kidKey];
+      const tracked = days.filter(d => kidData[d].total > 0);
+      const fullDays = tracked.filter(d => kidData[d].done === kidData[d].total).length;
+      const missedDays = tracked.filter(d => kidData[d].done < kidData[d].total).length;
+      let streak = 0;
+      for (let i = days.length-1; i >= 0; i--) {
+        const d = days[i];
+        if (kidData[d].total===0) continue;
+        if (kidData[d].done===kidData[d].total) streak++; else break;
+      }
 
-        return (
-          <div key={kidKey} style={{ background:"#fff", borderRadius:22, overflow:"hidden", boxShadow:"0 4px 18px rgba(0,0,0,0.08)", marginBottom:20 }}>
-            <div style={{ background:`linear-gradient(135deg,${kid.color},${kid.color}bb)`, padding:"16px 20px", color:"#fff", display:"flex", alignItems:"center", gap:12 }}>
-              <span style={{ fontSize:28 }}>{kid.emoji}</span>
-              <div>
-                <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:22 }}>{kid.name}</div>
-                <div style={{ fontSize:12, opacity:.85 }}>Last 60 days overview</div>
-              </div>
-            </div>
-
-            <div style={{ display:"flex", borderBottom:"1px solid #f0f0f0" }}>
-              {[["🔥",streak,"Day streak"],["✅",fullDays,"Full days"],["⚠️",missedDays,"Missed days"]].map(([icon,val,lbl]) => (
-                <div key={lbl} style={{ flex:1, textAlign:"center", padding:"14px 8px", borderRight:"1px solid #f0f0f0" }}>
-                  <div style={{ fontSize:20 }}>{icon}</div>
-                  <div style={{ fontFamily:"'Fredoka One',cursive", fontSize:24, color:kid.color }}>{val}</div>
-                  <div style={{ fontSize:11, color:"#999", fontWeight:700 }}>{lbl}</div>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ padding:"16px 16px 8px" }}>
-              <div style={{ fontSize:12, fontWeight:800, color:"#999", marginBottom:10 }}>DAILY COMPLETION — tap a day for details</div>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-                {days.map(d => {
-                  const { done, total } = kidData[d];
-                  const isToday = d === todayStr();
-                  const bg  = total===0?"#f0f0f0":done===total?"#00C9A7":done>=total*.7?"#FFB800":done>0?"#FF9F43":"#FF6B6B";
-                  const sel = selectedDay===`${kidKey}_${d}`;
-                  return (
-                    <div key={d} title={`${dateLabel(d)}: ${done}/${total}`}
-                      onClick={() => setSelectedDay(sel ? null : `${kidKey}_${d}`)}
-                      style={{ width:28, height:28, borderRadius:7, background:bg, cursor:"pointer",
-                        border: isToday?`2.5px solid ${kid.color}`:sel?"2.5px solid #333":"2.5px solid transparent",
-                        transform:sel?"scale(1.2)":"scale(1)", transition:"transform .15s" }} />
-                  );
-                })}
-              </div>
-              <div style={{ display:"flex", gap:12, marginTop:10, flexWrap:"wrap" }}>
-                {[["#00C9A7","All done"],["#FFB800","70%+ done"],["#FF9F43","Partial"],["#FF6B6B","Missed"],["#f0f0f0","No tasks"]].map(([c,l]) => (
-                  <div key={l} style={{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:"#999", fontWeight:700 }}>
-                    <div style={{ width:12, height:12, borderRadius:3, background:c }} />{l}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {selectedDay && selectedDay.startsWith(kidKey) && (() => {
-              const selDate = selectedDay.replace(`${kidKey}_`,"");
-              const dow     = getDOW(selDate);
-              const dTasks  = kid.tasks.filter(t => !t.days || t.days.includes(dow));
-              const checks  = kidData[selDate]?.checks || {};
-              return (
-                <div style={{ margin:"0 16px 16px", background:"#f9f9f9", borderRadius:14, padding:"14px 16px" }}>
-                  <div style={{ fontWeight:800, fontSize:14, marginBottom:10, color:"#2D3436" }}>
-                    📅 {dateLabel(selDate)} — {kidData[selDate].done}/{kidData[selDate].total} tasks done
-                  </div>
-                  {dTasks.map(t => (
-                    <div key={t.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 0", borderBottom:"1px dashed #eee", fontSize:13 }}>
-                      <span>{checks[t.id] ? "✅" : "❌"}</span>
-                      <span style={{ color:checks[t.id]?"#2D3436":"#aaa", fontWeight:600 }}>{t.label}</span>
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
-          </div>
+      const selDate = selectedDay && selectedDay.startsWith(kidKey) ? selectedDay.replace(kidKey+"_", "") : null;
+      let detailBlock = null;
+      if (selDate) {
+        const dow = getDOW(selDate);
+        const dTasks = kid.tasks.filter(t => !t.days || t.days.includes(dow));
+        const checks = (kidData[selDate] && kidData[selDate].checks) || {};
+        detailBlock = h("div", { style:{ margin:"0 16px 16px", background:"#f9f9f9", borderRadius:14, padding:"14px 16px" } },
+          h("div", { style:{ fontWeight:800, fontSize:14, marginBottom:10, color:"#2D3436" } },
+            "📅 " + dateLabel(selDate) + " — " + kidData[selDate].done + "/" + kidData[selDate].total + " tasks done"
+          ),
+          dTasks.map(t => h("div", { key:t.id, style:{ display:"flex", alignItems:"center", gap:8, padding:"6px 0", borderBottom:"1px dashed #eee", fontSize:13 } },
+            h("span", null, checks[t.id] ? "✅" : "❌"),
+            h("span", { style:{ color:checks[t.id]?"#2D3436":"#aaa", fontWeight:600 } }, t.label)
+          ))
         );
-      })}
-    </div>
+      }
+
+      return h("div", { key:kidKey, style:{ background:"#fff", borderRadius:22, overflow:"hidden", boxShadow:"0 4px 18px rgba(0,0,0,0.08)", marginBottom:20 } },
+        h("div", { style:{ background:"linear-gradient(135deg," + kid.color + "," + kid.color + "bb)", padding:"16px 20px", color:"#fff", display:"flex", alignItems:"center", gap:12 } },
+          h("span", { style:{ fontSize:28 } }, kid.emoji),
+          h("div", null,
+            h("div", { style:{ fontFamily:"'Fredoka One',cursive", fontSize:22 } }, kid.name),
+            h("div", { style:{ fontSize:12, opacity:.85 } }, "Last 60 days overview")
+          )
+        ),
+
+        h("div", { style:{ display:"flex", borderBottom:"1px solid #f0f0f0" } },
+          [["🔥",streak,"Day streak"],["✅",fullDays,"Full days"],["⚠️",missedDays,"Missed days"]].map(([icon,val,lbl]) =>
+            h("div", { key:lbl, style:{ flex:1, textAlign:"center", padding:"14px 8px", borderRight:"1px solid #f0f0f0" } },
+              h("div", { style:{ fontSize:20 } }, icon),
+              h("div", { style:{ fontFamily:"'Fredoka One',cursive", fontSize:24, color:kid.color } }, val),
+              h("div", { style:{ fontSize:11, color:"#999", fontWeight:700 } }, lbl)
+            )
+          )
+        ),
+
+        h("div", { style:{ padding:"16px 16px 8px" } },
+          h("div", { style:{ fontSize:12, fontWeight:800, color:"#999", marginBottom:10 } }, "DAILY COMPLETION — tap a day for details"),
+          h("div", { style:{ display:"flex", flexWrap:"wrap", gap:5 } },
+            days.map(d => {
+              const dd = kidData[d];
+              const isToday = d === todayStr();
+              const bg = dd.total===0?"#f0f0f0":dd.done===dd.total?"#00C9A7":dd.done>=dd.total*.7?"#FFB800":dd.done>0?"#FF9F43":"#FF6B6B";
+              const sel = selectedDay === (kidKey+"_"+d);
+              return h("div", {
+                key:d, title:dateLabel(d) + ": " + dd.done + "/" + dd.total,
+                onClick: () => setSelectedDay(sel ? null : kidKey+"_"+d),
+                style:{ width:28, height:28, borderRadius:7, background:bg, cursor:"pointer",
+                  border: isToday ? "2.5px solid "+kid.color : sel ? "2.5px solid #333" : "2.5px solid transparent",
+                  transform: sel ? "scale(1.2)" : "scale(1)", transition:"transform .15s" }
+              });
+            })
+          ),
+          h("div", { style:{ display:"flex", gap:12, marginTop:10, flexWrap:"wrap" } },
+            [["#00C9A7","All done"],["#FFB800","70%+ done"],["#FF9F43","Partial"],["#FF6B6B","Missed"],["#f0f0f0","No tasks"]].map(([c,l]) =>
+              h("div", { key:l, style:{ display:"flex", alignItems:"center", gap:5, fontSize:11, color:"#999", fontWeight:700 } },
+                h("div", { style:{ width:12, height:12, borderRadius:3, background:c } }), l
+              )
+            )
+          )
+        ),
+
+        detailBlock
+      );
+    })
+  );
+}
+
+// ── MAIN APP ─────────────────────────────────────────────────
+function App() {
+  const [tab, setTab] = useState("today");
+  const today = todayStr();
+  const dow = getDOW(today);
+  const dateDisplay = new Date().toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" });
+
+  return h("div", { style:{ minHeight:"100vh" } },
+    h("div", { style:{ background:"linear-gradient(135deg,#3AB4F2,#1a85c4)", padding:"28px 20px 50px", textAlign:"center", position:"relative", overflow:"hidden" } },
+      h("div", { style:{ position:"absolute", bottom:-2, left:0, right:0, height:40, background:"linear-gradient(160deg,#FFF8EE,#EEF6FF)", borderRadius:"50% 50% 0 0 / 60px 60px 0 0" } }),
+      h("div", { style:{ fontSize:44, marginBottom:4 } }, "☀️"),
+      h("div", { style:{ fontFamily:"'Fredoka One',cursive", fontSize:28, color:"#fff" } }, "Summer Tracker 2026"),
+      h("div", { style:{ color:"rgba(255,255,255,0.85)", fontSize:13, marginTop:4 } }, dateDisplay),
+      h("div", { style:{ color:"rgba(255,255,255,0.7)", fontSize:11, marginTop:6 } }, "🔗 Synced via Google Sheets — works on all phones"),
+      h("div", { style:{ display:"flex", justifyContent:"center", gap:10, marginTop:16 } },
+        [["today","📋 Today"],["parent","📊 Parent View"]].map(([id,lbl]) =>
+          h("button", {
+            key:id, onClick:() => setTab(id),
+            style:{
+              padding:"8px 20px", borderRadius:999, border:"2px solid rgba(255,255,255,0.5)",
+              background: tab===id ? "#fff" : "transparent",
+              color: tab===id ? "#1a85c4" : "#fff",
+              fontWeight:800, fontSize:13, cursor:"pointer", fontFamily:"'Nunito',sans-serif", transition:"all .2s",
+            }
+          }, lbl)
+        )
+      )
+    ),
+    h("div", { style:{ maxWidth:900, margin:"0 auto", padding:"0 14px 60px" } },
+      tab==="today" ? h(TodayView, { today:today, dow:dow }) : h(ParentView)
+    )
   );
 }
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App />);
+root.render(h(App));
 </script>
 
 </body>
